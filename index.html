@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Ping Pong Clássico</title>
+  <style>
+    canvas {
+      background: black;
+      display: block;
+      position: relative;
+      top: 220px;
+      margin: 0 auto;
+      border: 3px solid white;
+    }
+
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      font-size: 2em;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div id="message"></div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const messageBox = document.getElementById('message');
+
+    const paddleWidth = 10, paddleHeight = 100;
+    let playerY = canvas.height / 2 - paddleHeight / 2;
+    let aiY = canvas.height / 2 - paddleHeight / 2;
+    const paddleSpeed = 8;
+
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 5;
+    let ballSpeedY = 4;
+    const ballSize = 10;
+
+    let playerScore = 0;
+    let aiScore = 0;
+    let gameRunning = true;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') playerY -= paddleSpeed;
+      else if (e.key === 'ArrowDown') playerY += paddleSpeed;
+    });
+
+    function drawRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    function drawCircle(x, y, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawText(text, x, y) {
+      ctx.fillStyle = 'white';
+      ctx.font = '20px Arial';
+      ctx.fillText(text, x, y);
+    }
+
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;
+      ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 5;
+      ballSpeedY = (Math.random() > 0.5 ? 1 : -1) * 4;
+    }
+
+    function checkVictory() {
+      if (playerScore >= 5 || aiScore >= 5) {
+        gameRunning = false;
+        const winner = playerScore >= 5 ? "🏆 Vitória!" : "🤣 Perdeu!";
+        showMessage(winner);
+        setTimeout(resetGame, 3000);
+      }
+    }
+
+    function showMessage(text) {
+      messageBox.innerText = text;
+      messageBox.style.display = 'block';
+    }
+
+    function hideMessage() {
+      messageBox.style.display = 'none';
+    }
+
+    function resetGame() {
+      playerScore = 0;
+      aiScore = 0;
+      resetBall();
+      gameRunning = true;
+      hideMessage();
+    }
+
+    function update() {
+      if (!gameRunning) return;
+
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      if (ballY <= 0 || ballY + ballSize >= canvas.height) {
+        ballSpeedY *= -1;
+      }
+
+      // IA simples
+      const aiCenter = aiY + paddleHeight / 2;
+      if (aiCenter < ballY) aiY += 3;
+      else aiY -= 3;
+
+      // colisão com jogador
+      if (
+        ballX <= paddleWidth &&
+        ballY + ballSize >= playerY &&
+        ballY <= playerY + paddleHeight
+      ) {
+        ballSpeedX *= -1;
+      }
+
+      // colisão com IA
+      if (
+        ballX + ballSize >= canvas.width - paddleWidth &&
+        ballY + ballSize >= aiY &&
+        ballY <= aiY + paddleHeight
+      ) {
+        ballSpeedX *= -1;
+      }
+
+      // pontuação
+      if (ballX < 0) {
+        aiScore++;
+        resetBall();
+        checkVictory();
+      } else if (ballX > canvas.width) {
+        playerScore++;
+        resetBall();
+        checkVictory();
+      }
+    }
+
+    function render() {
+      drawRect(0, 0, canvas.width, canvas.height, 'black');
+      drawRect(0, playerY, paddleWidth, paddleHeight, 'white');
+      drawRect(canvas.width - paddleWidth, aiY, paddleWidth, paddleHeight, 'white');
+      drawCircle(ballX, ballY, ballSize, 'white');
+      drawText(`Jogador: ${playerScore}`, 20, 20);
+      drawText(`Computador: ${aiScore}`, canvas.width - 150, 20);
+    }
+
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+
+</html>
